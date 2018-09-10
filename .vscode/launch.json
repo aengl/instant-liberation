@@ -16,7 +16,22 @@
         "<node_internals>/**/*.js"
       ],
       "env": {
-        "DEBUG": "publikator:*",
+        "DEBUG": "instalib:*",
+        "DEBUG_COLORS": "1"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mirror",
+      "args": ["${workspaceFolder}/src/cli.js", "mirror", "data.yml"],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "${workspaceRoot}/node_modules/**/*.js",
+        "<node_internals>/**/*.js"
+      ],
+      "env": {
+        "DEBUG": "instalib:*",
         "DEBUG_COLORS": "1"
       }
     }

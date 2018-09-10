@@ -1,12 +1,27 @@
 const _ = require('lodash');
+const axios = require('axios');
 const debug = require('debug')('instalib:crawler');
 const fs = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const yaml = require('js-yaml');
+const url = require('url');
 
 const defaultDataRoot = path.resolve(os.homedir(), '.instalib');
+
+function download(source, target) {
+  const urlInfo = url.parse(source);
+  if (!urlInfo.protocol) {
+    // If the source doesn't specify a protocol, assume it's already downloaded
+    return Promise.resolve();
+  }
+  return new Promise(async resolve => {
+    debug(`"${source}" -> "${target}"`);
+    const response = await axios.get(source, { responseType: 'arraybuffer' });
+    fs.writeFile(target, response.data, resolve);
+  });
+}
 
 module.exports = {
   login: async dataRoot => {
@@ -18,20 +33,19 @@ module.exports = {
     await page.goto('https://www.instagram.com/accounts/login');
   },
 
-  crawl: async (url, options) => {
+  crawl: async (profileUrl, options) => {
     options = _.defaults(options, {
       dataPath: path.resolve('data.yml'),
-      mediaRoot: path.resolve('media'),
-      dataRoot: defaultDataRoot,
+      userDataDir: defaultDataRoot,
     });
 
     // Go to user page
-    debug(`navigating to "${url}"`);
+    debug(`navigating to "${profileUrl}"`);
     const browser = await puppeteer.launch({
-      userDataDir: options.dataRoot,
+      userDataDir: options.userDataDir,
     });
     const page = await browser.newPage();
-    const response = await page.goto(url);
+    const response = await page.goto(profileUrl);
     if (!response.ok()) {
       throw new Error(response.status());
     }
@@ -68,7 +82,31 @@ module.exports = {
 
       // Store data
       debug(`writing data to "${options.dataPath}"`);
+      fs.ensureFileSync(options.dataPath);
       fs.writeFileSync(options.dataPath, yaml.dump(data));
     }
+  },
+
+  download: async (dataPath, options) => {
+    options = _.defaults(options, {
+      mediaRoot: path.resolve('media'),
+    });
+
+    // Read data file
+    const data = yaml.safeLoad(fs.readFileSync(dataPath));
+
+    // Store media
+    fs.ensureDirSync(options.mediaRoot);
+    await Promise.all(
+      data.map(d => {
+        const source = d.display_url;
+        const target = path.join(options.mediaRoot, path.basename(source));
+        d.display_url = path.relative(options.mediaRoot, target);
+        return download(source, target);
+      })
+    );
+
+    // Store updated data
+    fs.writeFileSync(dataPath, yaml.dump(data));
   },
 };
