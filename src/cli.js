@@ -61,11 +61,16 @@ program
     '-o, --out <path>',
     'Output path for the media files (default: "media")'
   )
+  .option(
+    '-f, --field <path>',
+    'The name of the data field to mirror (default: "display_url")'
+  )
   .action(async (args, options) => {
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
     }
     await crawler.download(args.path, {
+      field: options.field,
       mediaRoot: options.out ? path.resolve(options.out) : undefined,
     });
   });

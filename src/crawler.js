@@ -89,6 +89,7 @@ module.exports = {
 
   download: async (dataPath, options) => {
     options = _.defaults(options, {
+      field: 'display_url',
       mediaRoot: path.resolve('media'),
     });
 
@@ -99,9 +100,9 @@ module.exports = {
     fs.ensureDirSync(options.mediaRoot);
     await Promise.all(
       data.map(d => {
-        const source = d.display_url;
+        const source = _.get(d, options.field);
         const target = path.join(options.mediaRoot, path.basename(source));
-        d.display_url = path.relative(options.mediaRoot, target);
+        _.set(d, options.field, path.relative(options.mediaRoot, target));
         return download(source, target);
       })
     );
