@@ -17,17 +17,24 @@ function download(source, target) {
     return Promise.resolve();
   }
   return new Promise(async resolve => {
-    debug(`"${source}" -> "${target}"`);
-    const response = await axios.get(source, { responseType: 'arraybuffer' });
+    debug(`downloading "${source}"`);
+    const response = await axios.get(source, {
+      responseType: 'arraybuffer',
+      timeout: 30000,
+    });
     fs.writeFile(target, response.data, resolve);
+    debug(`wrote "${target}"`);
   });
 }
 
 module.exports = {
-  login: async dataRoot => {
+  login: async options => {
+    options = _.defaults(options, {
+      userDataDir: defaultDataRoot,
+    });
     const browser = await puppeteer.launch({
       headless: false,
-      userDataDir: dataRoot || defaultDataRoot,
+      userDataDir: options.userDataDir,
     });
     const page = await browser.newPage();
     await page.goto('https://www.instagram.com/accounts/login');

@@ -18,11 +18,17 @@ program.version(packageJson.version);
 
 program
   .command('login', 'Opens a browser and stores your session')
+  .option(
+    '-d, --data <path>',
+    'Data directory for Chromium (default: "~/.instalib")'
+  )
   .action(async (args, options) => {
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
     }
-    await crawler.login();
+    await crawler.login({
+      userDataDir: options.data ? path.resolve(options.data) : undefined,
+    });
   });
 
 /* ~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^
