@@ -140,6 +140,13 @@ module.exports = {
         yaml.dump(posts.slice(0, options.numPosts))
       );
     }
+
+    // Close browser
+    // Give Chromium some time to finish up outstanding async calls;
+    // TODO: should not be necessary
+    await page.waitFor(2000);
+    await page.close();
+    await browser.close();
   },
 
   mirror: async (dataPath, options) => {
