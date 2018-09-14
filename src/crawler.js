@@ -27,6 +27,37 @@ function download(source, target) {
   });
 }
 
+async function queryNode(page, node) {
+  const result = await page.evaluate(async id => {
+    // eslint-disable-next-line no-undef
+    const res = await fetch(`https://www.instagram.com/p/${id}/?__a=1`);
+    const json = await res.json();
+    return json;
+  }, node.shortcode);
+  return {
+    index: node,
+    detail: result.graphql.shortcode_media,
+  };
+}
+
+async function scrollToBottom(page) {
+  while (true) {
+    page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+    try {
+      await page.waitForResponse(res => !!res.url().match(/graphql/), {
+        timeout: 5000,
+      });
+      // Wait a bit for the DOM to be updated
+      // TODO: this is a bit brittle, we should properly wait for DOM changes
+      await page.waitFor(200);
+    } catch (error) {
+      // When the wait times out, no requests were fired so we assume we've
+      // reached the bottom.
+      break;
+    }
+  }
+}
+
 module.exports = {
   login: async options => {
     options = _.defaults(options, {
@@ -46,51 +77,63 @@ module.exports = {
       userDataDir: defaultDataRoot,
     });
 
-    // Go to user page
-    debug(`navigating to "${profileUrl}"`);
+    // Create page that intercepts graphql calls
+    debug(`launching Chromium`);
     const browser = await puppeteer.launch({
       userDataDir: options.userDataDir,
     });
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    const posts = [];
+    page.on('request', request => {
+      // Block irrelevant resources
+      ['image', 'stylesheet', 'font'].indexOf(request.resourceType()) !== -1
+        ? request.abort()
+        : request.continue();
+    });
+    page.on('response', async response => {
+      if (response.url().match(/graphql/)) {
+        const json = await response.json();
+        const edges = _.get(
+          json,
+          'data.user.edge_owner_to_timeline_media.edges'
+        );
+        if (edges) {
+          edges.forEach(async edge =>
+            posts.push(await queryNode(page, edge.node))
+          );
+          debug(`collected ${posts.length} posts`);
+        }
+      }
+    });
+
+    // Go to user page
+    debug(`navigating to "${profileUrl}"`);
     const response = await page.goto(profileUrl);
     if (!response.ok()) {
       throw new Error(response.status());
     }
 
-    // Get all post links and extract their IDs
-    const postUrls = await page.$$eval('a', urls => urls.map(a => a.href));
-    const postIDs = postUrls
-      .map(href => href.match(/\/p\/(?<id>[^/]+)\//))
-      .filter(match => !!match)
-      .map(match => match.groups.id);
-    debug(`found ${postIDs.length} post(s)`);
+    // Push initial data
+    const initialEdges = await page.evaluate(
+      () =>
+        // eslint-disable-next-line
+        window._sharedData.entry_data.ProfilePage[0].graphql.user
+          .edge_owner_to_timeline_media.edges
+    );
+    initialEdges.forEach(async edge =>
+      posts.push(await queryNode(page, edge.node))
+    );
 
-    if (postIDs.length === 0) {
-      debug('the account might be private -- try calling "login" first');
-    } else {
-      // Get GraphQL data for all posts
-      debug(`querying data for all posts`);
-      const results = await Promise.all(
-        postIDs.map(id =>
-          page.evaluate(async _id => {
-            // eslint-disable-next-line no-undef
-            const res = await fetch(
-              `https://www.instagram.com/p/${_id}/?__a=1`
-            );
-            const json = await res.json();
-            return json;
-          }, id)
-        )
-      );
-      const data = results.map(result => result.graphql.shortcode_media);
+    // Scroll to the bottom
+    await scrollToBottom(page);
 
-      await page.close();
-      await browser.close();
-
-      // Store data
+    // Store data
+    if (posts) {
+      debug(`found ${posts.length} post(s)`);
       debug(`writing data to "${options.dataPath}"`);
       fs.ensureFileSync(options.dataPath);
-      fs.writeFileSync(options.dataPath, yaml.dump(data));
+      fs.writeFileSync(options.dataPath, yaml.dump(posts));
     }
   },
 
