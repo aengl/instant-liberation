@@ -46,6 +46,7 @@ program
     '-d, --data <path>',
     'Data directory for Chromium (default: "~/.instalib")'
   )
+  .option('-n, --num <path>', 'Stop after the specified number of posts')
   .action(async (args, options) => {
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
@@ -53,6 +54,7 @@ program
     await crawler.crawl(args.url, {
       dataPath: options.out ? path.resolve(options.out) : undefined,
       userDataDir: options.data ? path.resolve(options.data) : undefined,
+      numPosts: options.num,
     });
   });
 

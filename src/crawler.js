@@ -40,20 +40,19 @@ async function queryNode(page, node) {
 }
 
 async function scrollToBottom(page) {
-  while (true) {
-    page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
-    try {
-      await page.waitForResponse(res => !!res.url().match(/graphql/), {
-        timeout: 5000,
-      });
-      // Wait a bit for the DOM to be updated
-      // TODO: this is a bit brittle, we should properly wait for DOM changes
-      await page.waitFor(200);
-    } catch (error) {
-      // When the wait times out, no requests were fired so we assume we've
-      // reached the bottom.
-      break;
-    }
+  page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+  try {
+    await page.waitForResponse(res => !!res.url().match(/graphql/), {
+      timeout: 5000,
+    });
+    // Wait a bit for the DOM to be updated
+    // TODO: this is a bit brittle, we should properly wait for DOM changes
+    await page.waitFor(200);
+    return false;
+  } catch (error) {
+    // When the wait times out, no requests were fired so we assume we've
+    // reached the bottom.
+    return true;
   }
 }
 
@@ -74,6 +73,7 @@ module.exports = {
     options = _.defaults(options, {
       dataPath: path.resolve('data.yml'),
       userDataDir: defaultDataRoot,
+      numPosts: Infinity,
     });
 
     // Create page that intercepts graphql calls
@@ -125,14 +125,20 @@ module.exports = {
     );
 
     // Scroll to the bottom
-    await scrollToBottom(page);
+    let atBottom = false;
+    while (!atBottom && posts.length < options.numPosts) {
+      atBottom = await scrollToBottom(page);
+    }
 
     // Store data
     if (posts) {
       debug(`found ${posts.length} post(s)`);
       debug(`writing data to "${options.dataPath}"`);
       fs.ensureFileSync(options.dataPath);
-      fs.writeFileSync(options.dataPath, yaml.dump(posts));
+      fs.writeFileSync(
+        options.dataPath,
+        yaml.dump(posts.slice(0, options.numPosts))
+      );
     }
   },
 
