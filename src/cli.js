@@ -68,16 +68,22 @@ program
     'Output path for the media files (default: "media")'
   )
   .option(
-    '-f, --field <path>',
-    'The name of the data field to mirror (default: "display_url")'
+    '-f, --field <name>',
+    'The name of the data field to mirror (default: "detail.display_url")'
+  )
+  .option(
+    '-b, --batch-size <size>',
+    'The number of images to download in parallel (default: 12)',
+    program.INT
   )
   .action(async (args, options) => {
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
     }
-    await crawler.download(args.path, {
+    await crawler.mirror(args.path, {
       field: options.field,
       mediaRoot: options.out ? path.resolve(options.out) : undefined,
+      batchSize: options.batchSize,
     });
   });
 

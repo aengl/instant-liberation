@@ -1,7 +1,7 @@
 const _ = require('lodash');
-const axios = require('axios');
 const debug = require('debug')('instalib:crawler');
 const fs = require('fs-extra');
+const got = require('got');
 const os = require('os');
 const path = require('path');
 const puppeteer = require('puppeteer');
@@ -10,21 +10,20 @@ const url = require('url');
 
 const defaultDataRoot = path.resolve(os.homedir(), '.instalib');
 
-function download(source, target) {
+async function download(source, target) {
   const urlInfo = url.parse(source);
   if (!urlInfo.protocol) {
     // If the source doesn't specify a protocol, assume it's already downloaded
-    return Promise.resolve();
+    return;
   }
-  return new Promise(async resolve => {
-    debug(`downloading "${source}"`);
-    const response = await axios.get(source, {
-      responseType: 'arraybuffer',
-      timeout: 30000,
-    });
-    fs.writeFile(target, response.data, resolve);
-    debug(`wrote "${target}"`);
+  debug(`downloading "${source}"`);
+  const response = await got(source, {
+    encoding: null,
+    retries: 5,
+    timeout: 30000,
   });
+  fs.writeFileSync(target, response.body);
+  debug(`wrote "${target}"`);
 }
 
 async function queryNode(page, node) {
@@ -137,27 +136,40 @@ module.exports = {
     }
   },
 
-  download: async (dataPath, options) => {
+  mirror: async (dataPath, options) => {
     options = _.defaults(options, {
-      field: 'display_url',
+      field: 'detail.display_url',
       mediaRoot: path.resolve('media'),
+      batchSize: 12,
     });
 
     // Read data file
-    const data = yaml.safeLoad(fs.readFileSync(dataPath));
+    debug(`reading data file from "${dataPath}"`);
+    const posts = yaml.safeLoad(fs.readFileSync(dataPath));
 
-    // Store media
+    // Download and store media
     fs.ensureDirSync(options.mediaRoot);
-    await Promise.all(
-      data.map(d => {
-        const source = _.get(d, options.field);
-        const target = path.join(options.mediaRoot, path.basename(source));
-        _.set(d, options.field, path.relative(options.mediaRoot, target));
-        return download(source, target);
-      })
-    );
-
-    // Store updated data
-    fs.writeFileSync(dataPath, yaml.dump(data));
+    debug(`downloading media`);
+    try {
+      for (let i = 0; i < posts.length; i += options.batchSize) {
+        await Promise.all(
+          posts.slice(i, i + options.batchSize).map(async post => {
+            const source = _.get(post, options.field);
+            const target = path.join(options.mediaRoot, path.basename(source));
+            await download(source, target);
+            _.set(
+              post,
+              options.field,
+              path.relative(options.mediaRoot, target)
+            );
+          })
+        );
+      }
+    } catch (error) {
+      debug(error);
+    } finally {
+      // Store updated data
+      fs.writeFileSync(dataPath, yaml.dump(posts));
+    }
   },
 };
