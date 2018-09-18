@@ -154,6 +154,7 @@ module.exports = {
       field: 'detail.display_url',
       mediaRoot: path.resolve('media'),
       batchSize: 12,
+      pause: 1000,
     });
 
     // Read data file
@@ -165,10 +166,14 @@ module.exports = {
     debug(`downloading media`);
     try {
       for (let i = 0; i < posts.length; i += options.batchSize) {
-        await Promise.all(
-          posts.slice(i, i + options.batchSize).map(async post => {
-            const source = _.get(post, options.field);
-            if (!_.isNil(source)) {
+        const sources = posts
+          .slice(i, i + options.batchSize)
+          .map(post => ({ post, source: _.get(post, options.field) }))
+          .filter(({ source }) => !_.isNil(source));
+
+        if (sources.length > 0) {
+          await Promise.all(
+            sources.map(async ({ post, source }) => {
               const target = path.join(
                 options.mediaRoot,
                 path.basename(source)
@@ -179,9 +184,13 @@ module.exports = {
                 options.field,
                 path.relative(options.mediaRoot, target)
               );
-            }
-          })
-        );
+            })
+          );
+
+          const pause = _.random(options.pause * 0.8, options.pause * 1.2);
+          debug(`waiting for ${pause}ms`);
+          await new Promise(resolve => setTimeout(resolve, pause));
+        }
       }
     } catch (error) {
       debug(error);

@@ -78,6 +78,11 @@ program
     'The number of images to download in parallel (default: 12)',
     program.INT
   )
+  .option(
+    '-p, --pause <number>',
+    'The number of milliseconds to wait between batches (default: 1000)',
+    program.INT
+  )
   .action(async (args, options) => {
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
@@ -86,6 +91,7 @@ program
       field: options.field,
       mediaRoot: options.out ? path.resolve(options.out) : undefined,
       batchSize: options.batchSize,
+      pause: options.pause,
     });
   });
 
