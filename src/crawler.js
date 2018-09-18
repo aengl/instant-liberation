@@ -168,13 +168,18 @@ module.exports = {
         await Promise.all(
           posts.slice(i, i + options.batchSize).map(async post => {
             const source = _.get(post, options.field);
-            const target = path.join(options.mediaRoot, path.basename(source));
-            await download(source, target);
-            _.set(
-              post,
-              options.field,
-              path.relative(options.mediaRoot, target)
-            );
+            if (!_.isNil(source)) {
+              const target = path.join(
+                options.mediaRoot,
+                path.basename(source)
+              );
+              await download(source, target);
+              _.set(
+                post,
+                options.field,
+                path.relative(options.mediaRoot, target)
+              );
+            }
           })
         );
       }

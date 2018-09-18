@@ -45,6 +45,6 @@ This project offers you a CLI that can download data from instagram and mirror i
   Only `display_url` is mirrored by default (the full size images). If you want to mirror additional files, just call the command repeatedly with different flags, e.g.:
 
   ```
-  instalib mirror instagram.yml -f display_url -o media/images/
-  instalib mirror instagram.yml -f video_url -o media/videos/
+  instalib mirror instagram.yml -f detail.display_url -o media/images/
+  instalib mirror instagram.yml -f detail.video_url -o media/videos/
   ```
