@@ -1,6 +1,6 @@
 {
   "name": "instant-liberation",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "main": "index.js",
   "repository": "https://github.com/aengl/instant-liberation.git",
   "author": "Lynn Smeria <ae@cephea.de>",
