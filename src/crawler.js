@@ -137,7 +137,13 @@ module.exports = {
       fs.ensureFileSync(options.dataPath);
       fs.writeFileSync(
         options.dataPath,
-        yaml.dump(posts.slice(0, options.numPosts))
+        yaml.dump(
+          _.orderBy(
+            posts.slice(0, options.numPosts),
+            'index.taken_at_timestamp',
+            'desc'
+          )
+        )
       );
     }
 
