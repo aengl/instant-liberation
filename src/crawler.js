@@ -182,7 +182,7 @@ module.exports = {
             sources.map(async ({ post, source }) => {
               const target = path.join(
                 options.mediaRoot,
-                path.basename(source)
+                path.basename(url.parse(source).pathname)
               );
               await download(source, target);
               _.set(
