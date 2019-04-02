@@ -18,15 +18,26 @@
     "got": "9.6.0",
     "js-yaml": "3.13.0",
     "lodash": "4.17.11",
-    "puppeteer": "1.13.0"
+    "puppeteer": "1.14.0"
   },
   "devDependencies": {
-    "eslint": "5.15.3",
-    "eslint-config-airbnb": "17.1.0",
-    "eslint-config-prettier": "4.1.0",
-    "eslint-plugin-import": "2.16.0",
-    "eslint-plugin-jsx-a11y": "6.2.1",
-    "nodemon": "1.18.10"
+    "nodemon": "1.18.10",
+    "prettier": "1.16.4",
+    "xo": "0.24.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  },
+  "xo": {
+    "bracketSpacing": true,
+    "prettier": true,
+    "rules": {
+      "no-await-in-loop": 0,
+      "import/no-unassigned-import": 0
+    }
   },
   "scripts": {
     "dev": "nodemon src/cli.js"

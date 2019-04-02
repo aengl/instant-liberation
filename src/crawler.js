@@ -1,21 +1,22 @@
+const os = require('os');
+const path = require('path');
+
 const _ = require('lodash');
 const debug = require('debug')('instalib:crawler');
 const fs = require('fs-extra');
 const got = require('got');
-const os = require('os');
-const path = require('path');
 const puppeteer = require('puppeteer');
 const yaml = require('js-yaml');
-const url = require('url');
 
 const defaultDataRoot = path.resolve(os.homedir(), '.instalib');
 
 async function download(source, target) {
-  const urlInfo = url.parse(source);
+  const urlInfo = new URL(source);
   if (!urlInfo.protocol) {
     // If the source doesn't specify a protocol, assume it's already downloaded
     return;
   }
+
   debug(`downloading "${source}"`);
   const response = await got(source, {
     encoding: null,
@@ -42,7 +43,7 @@ async function queryNode(page, node) {
 async function scrollToBottom(page) {
   page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
   try {
-    await page.waitForResponse(res => !!res.url().match(/graphql/), {
+    await page.waitForResponse(res => Boolean(res.url().match(/graphql/)), {
       timeout: 5000,
     });
     // Wait a bit for the DOM to be updated
@@ -86,9 +87,13 @@ module.exports = {
     const posts = [];
     page.on('request', request => {
       // Block irrelevant resources
-      ['image', 'stylesheet', 'font'].indexOf(request.resourceType()) !== -1
-        ? request.abort()
-        : request.continue();
+      if (
+        ['image', 'stylesheet', 'font'].indexOf(request.resourceType()) === -1
+      ) {
+        request.continue();
+      } else {
+        request.abort();
+      }
     });
     page.on('response', async response => {
       if (response.url().match(/graphql/)) {
@@ -116,7 +121,7 @@ module.exports = {
     // Push initial data
     const initialEdges = await page.evaluate(
       () =>
-        // eslint-disable-next-line
+        // eslint-disable-next-line no-undef
         window._sharedData.entry_data.ProfilePage[0].graphql.user
           .edge_owner_to_timeline_media.edges
     );
@@ -182,7 +187,7 @@ module.exports = {
             sources.map(async ({ post, source }) => {
               const target = path.join(
                 options.mediaRoot,
-                path.basename(url.parse(source).pathname)
+                path.basename(new URL(source).pathname)
               );
               await download(source, target);
               _.set(

@@ -3,5 +3,6 @@
   "prettier.trailingComma": "es5",
   "editor.rulers": [80],
   "editor.formatOnSave": true,
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "xo.enable": true
 }

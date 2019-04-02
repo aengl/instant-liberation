@@ -1,5 +1,6 @@
-const debugModule = require('debug');
 const path = require('path');
+
+const debugModule = require('debug');
 const program = require('caporal');
 const packageJson = require('../package.json');
 const crawler = require('./crawler');
@@ -26,6 +27,7 @@ program
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
     }
+
     await crawler.login({
       userDataDir: options.data ? path.resolve(options.data) : undefined,
     });
@@ -51,6 +53,7 @@ program
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
     }
+
     await crawler.crawl(args.url, {
       dataPath: options.out ? path.resolve(options.out) : undefined,
       userDataDir: options.data ? path.resolve(options.data) : undefined,
@@ -87,6 +90,7 @@ program
     if (!process.env.DEBUG) {
       debugModule.enable('instalib:*');
     }
+
     await crawler.mirror(args.path, {
       field: options.field,
       mediaRoot: options.out ? path.resolve(options.out) : undefined,
