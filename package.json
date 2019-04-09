@@ -6,7 +6,7 @@
   "author": "Lynn Smeria <ae@cephea.de>",
   "license": "Unlicense",
   "bin": {
-    "instalib": "instalib.js"
+    "instalib": "src/bin.js"
   },
   "engines": {
     "node": ">=10"

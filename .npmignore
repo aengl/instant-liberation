@@ -1,0 +1,5 @@
+.vscode/
+media/
+node_modules/
+data.yml
+nodemon.json
