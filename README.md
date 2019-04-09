@@ -15,10 +15,10 @@ This project offers you a CLI that can download data from instagram and mirror i
 1.  Install `instalib` globally via `npm`:
 
     ```
-    npm install -g https://github.com/aengl/instant-liberation
+    npm install -g instant-liberation
     ```
 
-1.  Repeat the previous step to update to the latest version.
+    If you can't or don't want to install it globally, just drop the `-g` flag and either create the `instalib` command in your `package.json`, or run it with `npx instalib`.
 
 ## Usage
 
